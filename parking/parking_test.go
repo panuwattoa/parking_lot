@@ -59,6 +59,10 @@ func TestPark_CarParking(t *testing.T) {
 	if number5 > 0 {
 		t.Error("car should not park got slot ", number5)
 	}
+
+	if _, avilable := park.isThereASlotToJoin(); avilable {
+		t.Error(" should no slot left ")
+	}
 }
 
 func TestPark_CarLeave(t *testing.T) {
@@ -166,7 +170,7 @@ func TestPark_ParkStatus(t *testing.T) {
 	park.CarParking("KA-02-HH-2222", "White", slotNumber2)
 	<-slotNumber2
 
-	parkStatus := make(chan map[uint16]*Slot)
+	parkStatus := make(chan map[uint16]Slot)
 	park.ParkStatus(parkStatus)
 	status := <-parkStatus
 	if detail, ok := status[1]; ok {
@@ -279,6 +283,7 @@ func TestPark_FindSlotNumberWithRegisNumber(t *testing.T) {
 	slotNumberCh = make(chan uint16)
 	park.GetSlotNumberWithRegisCarNumber("KA-01-HH-0000", slotNumberCh)
 	number = <-slotNumberCh
+
 	if number != 0 {
 		t.Error("slot number not match")
 	}
