@@ -4,7 +4,7 @@ package parking
 type event interface{}
 
 type carParkingEvent struct {
-	isParked    chan bool
+	slotNumber  chan uint16
 	regisNumber string
 	color       string
 }
@@ -14,12 +14,12 @@ type Park struct {
 	canSendToEventCh bool // for check channel available
 	eventCh          chan event
 	slotCh           chan *slot // slot car channel
-	parkedCar        map[uint32]*slot
+	parkedCar        map[uint16]*slot
 	eventDoneCh      chan struct{} // for unit test
 }
 
 type slot struct {
-	number  uint32
+	number  uint16
 	regisNo string
 	color   string
 }

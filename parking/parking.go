@@ -1,17 +1,17 @@
 package parking
 
 // NewParking for init park with maximum slot
-func NewParking(maxSlot uint32) *Park {
+func NewParking(maxSlot uint16) *Park {
 	park := Park{
 		canSendToEventCh: true,
 		eventCh:          make(chan event, 32),
 		slotCh:           make(chan *slot, maxSlot),
-		parkedCar:        make(map[uint32]*slot),
+		parkedCar:        make(map[uint16]*slot),
 	}
 
 	for i := 1; i <= int(maxSlot); i++ {
 		park.slotCh <- &slot{
-			number: uint32(i),
+			number: uint16(i),
 		}
 	}
 	go park.eventLoop()
@@ -31,7 +31,7 @@ func (p *Park) eventLoop() {
 	for event := range p.eventCh {
 		switch ev := event.(type) {
 		case carParkingEvent:
-			p.carParking(ev.isParked)
+			p.carParking(ev.slotNumber)
 		}
 		if p.eventDoneCh != nil {
 			p.eventDoneCh <- struct{}{}
@@ -44,13 +44,15 @@ func (p *Park) eventLoop() {
 }
 
 // CarParking is
-func (p *Park) CarParking(isParkedCb chan bool) {
+func (p *Park) CarParking(regisNumber string, color string, slotNumberCb chan uint16) {
 	p.eventCh <- carParkingEvent{
-		isParked: isParkedCb,
+		slotNumber:  slotNumberCb,
+		regisNumber: regisNumber,
+		color:       color,
 	}
 }
 
-func (p *Park) carParking(isParked chan bool) {
-	defer close(isParked)
-	isParked <- false
+func (p *Park) carParking(slotNumber chan uint16) {
+	defer close(slotNumber)
+	slotNumber <- 0
 }
