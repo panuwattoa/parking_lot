@@ -5,12 +5,12 @@ func NewParking(maxSlot uint16) *Park {
 	park := Park{
 		canSendToEventCh: true,
 		eventCh:          make(chan event, 32),
-		slotCh:           make(chan *slot, maxSlot),
-		parkedCar:        make(map[uint16]*slot),
+		slotCh:           make(chan *Slot, maxSlot),
+		parkedCar:        make(map[uint16]*Slot),
 	}
 
 	for i := 1; i <= int(maxSlot); i++ {
-		park.slotCh <- &slot{
+		park.slotCh <- &Slot{
 			number: uint16(i),
 		}
 	}
@@ -31,20 +31,29 @@ func (p *Park) eventLoop() {
 	for event := range p.eventCh {
 		switch ev := event.(type) {
 		case carParkingEvent:
-			p.carParking(ev.slotNumber)
+			p.parking(ev.slotNumber)
+		case carLeaveEvent:
+			p.leave(ev.leaveSlotNumber, ev.slotNumberFree)
+		case parkStatusEvent:
+			p.status(ev.parkedCar)
+		case regisNumbersWithColor:
+			p.findRegisNumberListWithColor(ev.color, ev.regisNumbers)
+		case slotNumbersWithColor:
+			p.findSlotNumberListWithColor(ev.color, ev.slotNumbers)
+		case slotNumberWithRegisNumber:
+			p.findSlotNumberWithCarRegisNumber(ev.regisNumber, ev.slotNumbers)
+		case destroyEvent:
+			p.safeCloseEventChannel()
 		}
-		if p.eventDoneCh != nil {
-			p.eventDoneCh <- struct{}{}
-		}
-	}
-	if p.eventDoneCh != nil {
-		close(p.eventDoneCh)
 	}
 	close(p.slotCh)
 }
 
-// CarParking is
+// CarParking for parking get car slot
 func (p *Park) CarParking(regisNumber string, color string, slotNumberCb chan uint16) {
+	if !p.canSendToEventCh {
+		return
+	}
 	p.eventCh <- carParkingEvent{
 		slotNumber:  slotNumberCb,
 		regisNumber: regisNumber,
@@ -52,7 +61,103 @@ func (p *Park) CarParking(regisNumber string, color string, slotNumberCb chan ui
 	}
 }
 
-func (p *Park) carParking(slotNumber chan uint16) {
+// CarLeave for leave park return slot free
+func (p *Park) CarLeave(leaveSlotNumber uint16, slotNumberCb chan uint16) {
+	if !p.canSendToEventCh {
+		return
+	}
+	p.eventCh <- carLeaveEvent{
+		leaveSlotNumber: leaveSlotNumber,
+		slotNumberFree:  slotNumberCb,
+	}
+}
+
+// ParkStatus check parking status
+func (p *Park) ParkStatus(parkedCar chan map[uint16]*Slot) {
+	if !p.canSendToEventCh {
+		return
+	}
+	p.eventCh <- parkStatusEvent{
+		parkedCar: parkedCar,
+	}
+}
+
+// GetRegisNumberWithColor for get regis number list of car in parking
+func (p *Park) GetRegisNumberWithColor(color string, regisNumbers chan []string) {
+	if !p.canSendToEventCh {
+		return
+	}
+	p.eventCh <- regisNumbersWithColor{
+		color:        color,
+		regisNumbers: regisNumbers,
+	}
+}
+
+// GetSlotNumbersWithColor for get slot number list with car color
+func (p *Park) GetSlotNumbersWithColor(color string, slotNumbers chan []uint16) {
+	if !p.canSendToEventCh {
+		return
+	}
+	p.eventCh <- slotNumbersWithColor{
+		color:       color,
+		slotNumbers: slotNumbers,
+	}
+}
+
+// GetSlotNumberWithRegisCarNumber for get slot number with car regis number
+func (p *Park) GetSlotNumberWithRegisCarNumber(regisNumber string, slotNumbers chan uint16) {
+	if !p.canSendToEventCh {
+		return
+	}
+	p.eventCh <- slotNumberWithRegisNumber{
+		regisNumber: regisNumber,
+		slotNumbers: slotNumbers,
+	}
+}
+
+// Destroy close channel
+func (p *Park) Destroy() {
+	p.eventCh <- destroyEvent{}
+}
+
+func (p *Park) parking(slotNumber chan uint16) {
 	defer close(slotNumber)
 	slotNumber <- 0
+}
+
+func (p *Park) leave(leaveSlotNumber uint16, slotNumberFree chan uint16) {
+	defer close(slotNumberFree)
+	slotNumberFree <- 0
+}
+
+func (p *Park) status(parkedCar chan map[uint16]*Slot) {
+	defer close(parkedCar)
+	parkedCar <- p.parkedCar
+}
+
+func (p *Park) findRegisNumberListWithColor(color string, regisNumbers chan []string) {
+	defer close(regisNumbers)
+	regisNumbers <- make([]string, 0)
+}
+
+func (p *Park) findSlotNumberListWithColor(color string, slotNumber chan []uint16) {
+	defer close(slotNumber)
+	slotNumber <- make([]uint16, 0)
+}
+
+func (p *Park) findSlotNumberWithCarRegisNumber(regisNumber string, slotNumber chan uint16) {
+	defer close(slotNumber)
+	slotNumber <- 0
+}
+
+func (p *Park) isThereASlotToJoin() (*Slot, bool) {
+	if len(p.slotCh) == 0 {
+		return nil, false
+	}
+
+	for slot := range p.slotCh {
+		return slot, true
+	}
+
+	return nil, false
 }
