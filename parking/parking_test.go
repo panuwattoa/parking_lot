@@ -83,6 +83,17 @@ func TestPark_CarLeave(t *testing.T) {
 		t.Error("car can't leave", num)
 	}
 
+	freeNumber = make(chan uint16)
+	park.CarLeave(number3, freeNumber)
+	num = <-freeNumber
+	if num != 0 {
+		t.Error("leave not remove car", num)
+	}
+
+	if len(park.parkedCar) != 2 {
+		t.Error("leave not free slot ", len(park.parkedCar))
+	}
+
 	if slot, avilable := park.isThereASlotToJoin(); avilable {
 		if slot.number != 3 {
 			t.Error("return wrong slot")
@@ -112,11 +123,17 @@ func TestPark_CarJoinAndLeave(t *testing.T) {
 	freeNumber := make(chan uint16)
 	park.CarLeave(number2, freeNumber)
 	numFree := <-freeNumber
-
+	if len(park.parkedCar) != 2 {
+		t.Error("leave not free slot ", len(park.parkedCar))
+	}
 	// join
 	slotNumber2 = make(chan uint16)
 	park.CarParking("KA-02-HH-2222", "White", slotNumber2)
 	number2 = <-slotNumber2
+
+	if len(park.parkedCar) != 3 {
+		t.Error("join not remove slot ", len(park.parkedCar))
+	}
 
 	if numFree != number2 || numFree == 0 || number2 == 0 {
 		t.Error("not parking at free slot")
