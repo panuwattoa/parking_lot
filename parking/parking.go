@@ -31,7 +31,7 @@ func (p *Park) eventLoop() {
 	for event := range p.eventCh {
 		switch ev := event.(type) {
 		case carParkingEvent:
-			p.parking(ev.slotNumber)
+			p.parking(ev.regisNumber, ev.color, ev.slotNumber)
 		case carLeaveEvent:
 			p.leave(ev.leaveSlotNumber, ev.slotNumberFree)
 		case parkStatusEvent:
@@ -73,7 +73,7 @@ func (p *Park) CarLeave(leaveSlotNumber uint16, slotNumberCb chan uint16) {
 }
 
 // ParkStatus check parking status
-func (p *Park) ParkStatus(parkedCar chan map[uint16]*Slot) {
+func (p *Park) ParkStatus(parkedCar chan map[uint16]Slot) {
 	if !p.canSendToEventCh {
 		return
 	}
@@ -120,33 +120,69 @@ func (p *Park) Destroy() {
 	p.eventCh <- destroyEvent{}
 }
 
-func (p *Park) parking(slotNumber chan uint16) {
+func (p *Park) parking(regisNumber string, color string, slotNumber chan uint16) {
 	defer close(slotNumber)
-	slotNumber <- 0
+	if slot, available := p.isThereASlotToJoin(); available {
+		slot.color = color
+		slot.regisNo = regisNumber
+		p.parkedCar[slot.number] = slot
+		slotNumber <- slot.number // return
+	} else {
+		slotNumber <- 0 // return
+	}
 }
 
 func (p *Park) leave(leaveSlotNumber uint16, slotNumberFree chan uint16) {
 	defer close(slotNumberFree)
-	slotNumberFree <- 0
+	if slot, ok := p.parkedCar[leaveSlotNumber]; ok {
+		var slotPosition = slot.number
+		p.slotCh <- slot // return slot free
+		delete(p.parkedCar, leaveSlotNumber)
+		slotNumberFree <- slotPosition // return
+	} else {
+		slotNumberFree <- 0 // return
+	}
 }
 
-func (p *Park) status(parkedCar chan map[uint16]*Slot) {
+func (p *Park) status(parkedCar chan map[uint16]Slot) {
 	defer close(parkedCar)
-	parkedCar <- p.parkedCar
+	copyMap := make(map[uint16]Slot)
+	for key, value := range p.parkedCar {
+		copyMap[key] = *value
+	}
+	parkedCar <- copyMap
 }
 
 func (p *Park) findRegisNumberListWithColor(color string, regisNumbers chan []string) {
 	defer close(regisNumbers)
-	regisNumbers <- make([]string, 0)
+	regisList := make([]string, len(p.parkedCar))
+	for _, car := range p.parkedCar {
+		if car.color == color {
+			regisList = append(regisList, car.regisNo)
+		}
+	}
+	regisNumbers <- regisList
 }
 
 func (p *Park) findSlotNumberListWithColor(color string, slotNumber chan []uint16) {
 	defer close(slotNumber)
-	slotNumber <- make([]uint16, 0)
+	slotList := make([]uint16, len(p.parkedCar))
+	for _, car := range p.parkedCar {
+		if car.color == color {
+			slotList = append(slotList, car.number)
+		}
+	}
+	slotNumber <- slotList
 }
 
 func (p *Park) findSlotNumberWithCarRegisNumber(regisNumber string, slotNumber chan uint16) {
 	defer close(slotNumber)
+	for _, car := range p.parkedCar {
+		if car.regisNo == regisNumber {
+			slotNumber <- car.number
+			return
+		}
+	}
 	slotNumber <- 0
 }
 

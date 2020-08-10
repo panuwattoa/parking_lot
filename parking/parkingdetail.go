@@ -15,7 +15,7 @@ type carLeaveEvent struct {
 }
 
 type parkStatusEvent struct {
-	parkedCar chan map[uint16]*Slot
+	parkedCar chan map[uint16]Slot
 }
 
 type regisNumbersWithColor struct {
