@@ -6,7 +6,7 @@ import (
 
 func TestPark_Create(t *testing.T) {
 	// creat mock park
-	var numslot uint32 = 4
+	var numslot uint16 = 4
 	park := createMockPark(numslot)
 	if len(park.slotCh) != int(numslot) {
 		t.Error("should be ", numslot, " but have ", len(park.slotCh))
@@ -20,14 +20,14 @@ func TestPark_Create(t *testing.T) {
 }
 
 func TestPark_CarParking(t *testing.T) {
-	park := createMockPark(6)
-	isParked := make(chan bool)
-	park.CarParking(isParked)
-	canPark := <-isParked
-	if canPark {
+	var numslot uint16 = 6
+	park := createMockPark(numslot)
+	slotNumber := make(chan uint16)
+	park.CarParking("KA-01-HH-9999", "White", slotNumber)
+	number := <-slotNumber
 
-	} else {
-		t.Error("cant park ", canPark)
+	if number <= 0 || number > numslot {
+		t.Error("cant park ", numslot)
 	}
 }
 
@@ -51,6 +51,6 @@ func TestPark_FindSlotNumberWithRegisNumber(t *testing.T) {
 
 }
 
-func createMockPark(numSlot uint32) *Park {
+func createMockPark(numSlot uint16) *Park {
 	return NewParking(numSlot)
 }
