@@ -1,0 +1,4 @@
+#!/bin/bash
+cd ..
+go get
+./go-executable-build.bash

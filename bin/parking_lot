@@ -1,0 +1,14 @@
+#!/bin/bash
+package_name=$1
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    platforms="linux"
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    platforms="darwin"
+fi
+if [[ -z "$package_name" ]]; then
+cd ..
+./parkinglot-$platforms-amd64
+else
+cd ..
+./parkinglot-$platforms-amd64 $package_name
+fi

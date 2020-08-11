@@ -3,11 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
-	"log"
+	"io/ioutil"
 	"os"
 	"parkinglot/command"
 	"regexp"
+	"strings"
 )
 
 func main() {
@@ -17,25 +17,14 @@ func main() {
 		return
 	}
 	filename := os.Args[1]
-	file, err := os.Open(filename)
+	fmt.Println(filename)
+	file, err := ioutil.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}
-	defer file.Close()
-
-	rd := bufio.NewReader(file)
-	for {
-		line, err := rd.ReadString('\n')
-		if err != nil {
-			log.Fatal(err)
-		}
-		cmd(line)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
+	line := strings.Split(string(file), "\n")
+	for _, message := range line {
+		cmd(message)
 	}
 }
 

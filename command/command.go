@@ -155,7 +155,7 @@ func commandCheckSlotNumberWithRegisNumber(cmd string, param string) {
 }
 
 func exit(cmd string, param string) {
-	if checkParkAready() {
+	if park != nil {
 		park.Destroy()
 		for i := 0; i < 5; i++ {
 			fmt.Print("#")
