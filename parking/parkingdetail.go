@@ -45,7 +45,7 @@ type Park struct {
 }
 
 type Slot struct {
-	number  uint16
-	regisNo string
-	color   string
+	Number  uint16
+	RegisNo string
+	Color   string
 }

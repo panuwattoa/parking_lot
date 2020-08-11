@@ -11,7 +11,7 @@ func NewParking(maxSlot uint16) *Park {
 
 	for i := 1; i <= int(maxSlot); i++ {
 		park.slotCh <- &Slot{
-			number: uint16(i),
+			Number: uint16(i),
 		}
 	}
 	go park.eventLoop()
@@ -28,6 +28,7 @@ func (p *Park) safeCloseEventChannel() {
 
 // eventLoop for protect race condition
 func (p *Park) eventLoop() {
+	defer close(p.slotCh)
 	for event := range p.eventCh {
 		switch ev := event.(type) {
 		case carParkingEvent:
@@ -46,7 +47,6 @@ func (p *Park) eventLoop() {
 			p.safeCloseEventChannel()
 		}
 	}
-	close(p.slotCh)
 }
 
 // CarParking for parking get car slot
@@ -123,10 +123,10 @@ func (p *Park) Destroy() {
 func (p *Park) parking(regisNumber string, color string, slotNumber chan uint16) {
 	defer close(slotNumber)
 	if slot, available := p.isThereASlotToJoin(); available {
-		slot.color = color
-		slot.regisNo = regisNumber
-		p.parkedCar[slot.number] = slot
-		slotNumber <- slot.number // return
+		slot.Color = color
+		slot.RegisNo = regisNumber
+		p.parkedCar[slot.Number] = slot
+		slotNumber <- slot.Number // return
 	} else {
 		slotNumber <- 0 // return
 	}
@@ -135,7 +135,7 @@ func (p *Park) parking(regisNumber string, color string, slotNumber chan uint16)
 func (p *Park) leave(leaveSlotNumber uint16, slotNumberFree chan uint16) {
 	defer close(slotNumberFree)
 	if slot, ok := p.parkedCar[leaveSlotNumber]; ok {
-		var slotPosition = slot.number
+		var slotPosition = slot.Number
 		p.slotCh <- slot // return slot free
 		delete(p.parkedCar, leaveSlotNumber)
 		slotNumberFree <- slotPosition // return
@@ -155,10 +155,10 @@ func (p *Park) status(parkedCar chan map[uint16]Slot) {
 
 func (p *Park) findRegisNumberListWithColor(color string, regisNumbers chan []string) {
 	defer close(regisNumbers)
-	regisList := make([]string, len(p.parkedCar))
+	regisList := make([]string, 0)
 	for _, car := range p.parkedCar {
-		if car.color == color {
-			regisList = append(regisList, car.regisNo)
+		if car.Color == color {
+			regisList = append(regisList, car.RegisNo)
 		}
 	}
 	regisNumbers <- regisList
@@ -166,10 +166,10 @@ func (p *Park) findRegisNumberListWithColor(color string, regisNumbers chan []st
 
 func (p *Park) findSlotNumberListWithColor(color string, slotNumber chan []uint16) {
 	defer close(slotNumber)
-	slotList := make([]uint16, len(p.parkedCar))
+	slotList := make([]uint16, 0)
 	for _, car := range p.parkedCar {
-		if car.color == color {
-			slotList = append(slotList, car.number)
+		if car.Color == color {
+			slotList = append(slotList, car.Number)
 		}
 	}
 	slotNumber <- slotList
@@ -178,8 +178,8 @@ func (p *Park) findSlotNumberListWithColor(color string, slotNumber chan []uint1
 func (p *Park) findSlotNumberWithCarRegisNumber(regisNumber string, slotNumber chan uint16) {
 	defer close(slotNumber)
 	for _, car := range p.parkedCar {
-		if car.regisNo == regisNumber {
-			slotNumber <- car.number
+		if car.RegisNo == regisNumber {
+			slotNumber <- car.Number
 			return
 		}
 	}

@@ -99,7 +99,7 @@ func TestPark_CarLeave(t *testing.T) {
 	}
 
 	if slot, avilable := park.isThereASlotToJoin(); avilable {
-		if slot.number != 3 {
+		if slot.Number != 3 {
 			t.Error("return wrong slot")
 		}
 	} else {
@@ -173,8 +173,11 @@ func TestPark_ParkStatus(t *testing.T) {
 	parkStatus := make(chan map[uint16]Slot)
 	park.ParkStatus(parkStatus)
 	status := <-parkStatus
+	if len(status) > 3 {
+		t.Error("status not true")
+	}
 	if detail, ok := status[1]; ok {
-		if detail.regisNo != "KA-01-HH-9999" && detail.regisNo != "White" {
+		if detail.RegisNo != "KA-01-HH-9999" && detail.RegisNo != "White" {
 			t.Error("status not true")
 		}
 	} else {
@@ -182,7 +185,7 @@ func TestPark_ParkStatus(t *testing.T) {
 	}
 
 	if detail, ok := status[2]; ok {
-		if detail.regisNo != "KA-02-HH-2222" && detail.regisNo != "White" {
+		if detail.RegisNo != "KA-02-HH-2222" && detail.RegisNo != "White" {
 			t.Error("status not true")
 		}
 	} else {
@@ -190,7 +193,7 @@ func TestPark_ParkStatus(t *testing.T) {
 	}
 
 	if detail, ok := status[3]; ok {
-		if detail.regisNo != "KA-01-HH-7777" && detail.regisNo != "White" {
+		if detail.RegisNo != "KA-01-HH-7777" && detail.RegisNo != "White" {
 			t.Error("status not true")
 		}
 	} else {
@@ -296,6 +299,8 @@ func TestPark_DestroyPark(t *testing.T) {
 	if !IsClosed(park.eventCh) && park.canSendToEventCh {
 		t.Error("channel not close")
 	}
+	park.CarParking("", "", nil)
+	park.CarLeave(0, nil)
 
 }
 func createMockPark(numSlot uint16) *Park {
