@@ -1,5 +1,4 @@
 #!/bin/bash
-cd ..
 echo 'Running Functional Test'
-go test -v ./parking
-go test -cover ./parking
+go test -v ../parking
+go test -cover ../parking
